@@ -1,57 +1,43 @@
 import streamlit as st
 import pandas as pd
 from datetime import timedelta
-from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+from st_aggrid import AgGrid, GridOptionsBuilder
 from st_aggrid.shared import ColumnsAutoSizeMode
 
 
 # =====================================================
-# SHIFT DROPDOWN RENDERER (COMPATIBLE WITH 1.2.1)
+# GLOBAL STYLE
 # =====================================================
 
-shift_renderer = JsCode("""
-function(params) {
-    const position = (params.data.Position || "").toLowerCase();
-    const isMorning = params.colDef.field.endsWith("_M");
-
-    let options = [""];
-
-    if (position.includes("service")) {
-        options = isMorning
-            ? ["", "S1", "S2", "S3"]
-            : ["", "S4", "S5", "S6"];
-    }
-    else if (position.includes("kitchen")) {
-        options = isMorning
-            ? ["", "B1", "B2", "B3"]
-            : ["", "B4", "B5", "B6"];
-    }
-    else {
-        return "";
-    }
-
-    const select = document.createElement("select");
-    select.style.width = "100%";
-    select.style.height = "100%";
-    select.style.textAlign = "center";
-    select.style.border = "none";
-    select.style.background = "transparent";
-
-    options.forEach(opt => {
-        const option = document.createElement("option");
-        option.value = opt;
-        option.text = opt;
-        if (params.value === opt) option.selected = true;
-        select.appendChild(option);
-    });
-
-    select.addEventListener("change", function() {
-        params.node.setDataValue(params.column.getId(), this.value);
-    });
-
-    return select;
+st.markdown("""
+<style>
+div.stButton > button {
+    background-color: #2563eb;
+    color: white;
+    font-weight: 600;
+    border-radius: 8px;
+    height: 42px;
 }
-""")
+div.stButton > button:hover {
+    background-color: #1e40af;
+}
+
+.ag-header-cell {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.ag-header-cell-label {
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.ag-pinned-left-cols-container {
+    background-color: #0f172a !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 # =====================================================
@@ -77,7 +63,10 @@ def render():
 
     st.header("Roster Management")
 
+    # -------------------------------------------------
     # DATE CONTROLS
+    # -------------------------------------------------
+
     st.markdown("#### Select Date Range")
 
     col1, col2, col3 = st.columns([3, 3, 1.2])
@@ -102,6 +91,10 @@ def render():
             st.warning("Please select valid dates.")
             return
 
+    # -------------------------------------------------
+    # LOAD STAFF
+    # -------------------------------------------------
+
     staff_list = get_all_staff()
 
     if not staff_list:
@@ -117,7 +110,10 @@ def render():
 
     date_range = generate_date_range(start, end)
 
+    # -------------------------------------------------
     # BUILD DATAFRAME
+    # -------------------------------------------------
+
     table_data = []
 
     for staff in staff_list:
@@ -135,15 +131,17 @@ def render():
 
     df = pd.DataFrame(table_data)
 
-    # =====================================================
-    # GRID BUILDER (WORKING VERSION FOR 1.2.1)
-    # =====================================================
+    # -------------------------------------------------
+    # GRID BUILDER
+    # -------------------------------------------------
 
     gb = GridOptionsBuilder.from_dataframe(df)
 
-    gb.configure_column("Full Name", pinned="left", width=180)
-    gb.configure_column("Position", pinned="left", width=130)
+    # Freeze left columns
+    gb.configure_column("Full Name", pinned="left", width=200)
+    gb.configure_column("Position", pinned="left", width=140)
 
+    # Shift dropdown columns
     for d in date_range:
         lbl = d.strftime("%d-%m")
 
@@ -170,8 +168,58 @@ def render():
         )
 
     gb.configure_default_column(
-        cellStyle={"textAlign": "center"},
-        resizable=False
+        resizable=False,
+        cellStyle={"textAlign": "center"}
+    )
+
+    # 🔴 IMPORTANT: Enable editing behavior
+    gb.configure_grid_options(
+        stopEditingWhenCellsLoseFocus=True,
+        singleClickEdit=True
     )
 
     grid_options = gb.build()
+
+    # -------------------------------------------------
+    # GROUP HEADERS
+    # -------------------------------------------------
+
+    built_defs = grid_options["columnDefs"]
+
+    pinned_defs = [c for c in built_defs if c.get("pinned") == "left"]
+    date_map = {c["field"]: c for c in built_defs if "_" in c.get("field", "")}
+
+    date_groups = []
+
+    for d in date_range:
+        lbl = d.strftime("%d-%m")
+        header = f"{d.strftime('%a')} {lbl}"
+
+        date_groups.append({
+            "headerName": header,
+            "children": [
+                date_map[f"{lbl}_M"],
+                date_map[f"{lbl}_A"]
+            ]
+        })
+
+    grid_options["columnDefs"] = [
+        {"headerName": "", "children": pinned_defs}
+    ] + date_groups
+
+    # -------------------------------------------------
+    # RENDER GRID
+    # -------------------------------------------------
+
+    st.divider()
+    st.subheader("Roster Schedule")
+
+    AgGrid(
+        df,
+        gridOptions=grid_options,
+        height=650,
+        allow_unsafe_jscode=True,
+        columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
+        fit_columns_on_grid_load=False,
+        width="stretch"
+    )
