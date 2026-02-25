@@ -5,13 +5,18 @@ import pandas as pd
 # ==========================================================
 # HELPER: Build Unique Key
 # ==========================================================
+def safe_str(value):
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
 def build_key(full_name, phone, email):
     return (
-        full_name.strip().lower(),
-        (phone or "").strip(),
-        (email or "").strip()
+        safe_str(full_name).lower(),
+        safe_str(phone),
+        safe_str(email).lower()
     )
-
 
 # ==========================================================
 # ADD SINGLE STAFF
