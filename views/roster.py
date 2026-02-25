@@ -1,103 +1,55 @@
 import streamlit as st
 import pandas as pd
 from datetime import timedelta
-from st_aggrid import AgGrid, JsCode
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 from st_aggrid.shared import ColumnsAutoSizeMode
 
 
 # =====================================================
-# GLOBAL STYLES
-# =====================================================
-
-st.markdown("""
-<style>
-div.stButton > button {
-    background-color: #2563eb;
-    color: white;
-    font-weight: 600;
-    border-radius: 8px;
-    height: 42px;
-}
-div.stButton > button:hover {
-    background-color: #1e40af;
-}
-
-.ag-header-cell {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-.ag-header-cell-label {
-    justify-content: center !important;
-    align-items: center !important;
-}
-
-.ag-pinned-left-cols-container {
-    background-color: #0f172a !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-
-# =====================================================
-# SHIFT DROPDOWN RENDERER
+# SHIFT DROPDOWN RENDERER (COMPATIBLE WITH 1.2.1)
 # =====================================================
 
 shift_renderer = JsCode("""
-class ShiftSelector {
-    init(params) {
-        const position = (params.data.Position || "").toLowerCase();
-        const isMorning = params.colDef.field.endsWith("_M");
+function(params) {
+    const position = (params.data.Position || "").toLowerCase();
+    const isMorning = params.colDef.field.endsWith("_M");
 
-        let options = [""];
+    let options = [""];
 
-        if (position.includes("service")) {
-            options = isMorning
-                ? ["", "S1", "S2", "S3"]
-                : ["", "S4", "S5", "S6"];
-        }
-        else if (position.includes("kitchen")) {
-            options = isMorning
-                ? ["", "B1", "B2", "B3"]
-                : ["", "B4", "B5", "B6"];
-        }
-        else {
-            this.eGui = document.createElement("div");
-            this.eGui.innerHTML = "";
-            return;
-        }
-
-        this.eGui = document.createElement("select");
-        this.eGui.style.width = "100%";
-        this.eGui.style.height = "100%";
-        this.eGui.style.textAlign = "center";
-        this.eGui.style.background = "transparent";
-        this.eGui.style.border = "none";
-
-        options.forEach(opt => {
-            const option = document.createElement("option");
-            option.value = opt;
-            option.text = opt;
-            if (params.value === opt) option.selected = true;
-            this.eGui.appendChild(option);
-        });
-
-        this.eGui.addEventListener("change", () => {
-            params.node.setDataValue(
-                params.column.getId(),
-                this.eGui.value
-            );
-        });
+    if (position.includes("service")) {
+        options = isMorning
+            ? ["", "S1", "S2", "S3"]
+            : ["", "S4", "S5", "S6"];
+    }
+    else if (position.includes("kitchen")) {
+        options = isMorning
+            ? ["", "B1", "B2", "B3"]
+            : ["", "B4", "B5", "B6"];
+    }
+    else {
+        return "";
     }
 
-    getGui() {
-        return this.eGui;
-    }
+    const select = document.createElement("select");
+    select.style.width = "100%";
+    select.style.height = "100%";
+    select.style.textAlign = "center";
+    select.style.border = "none";
+    select.style.background = "transparent";
 
-    refresh(params) {
-        return false;
-    }
+    options.forEach(opt => {
+        const option = document.createElement("option");
+        option.value = opt;
+        option.text = opt;
+        if (params.value === opt) option.selected = true;
+        select.appendChild(option);
+    });
+
+    select.addEventListener("change", function() {
+        params.node.setDataValue(params.column.getId(), this.value);
+    });
+
+    return select;
 }
 """)
 
@@ -116,7 +68,7 @@ def generate_date_range(start_date, end_date):
 
 
 # =====================================================
-# MAIN RENDER
+# MAIN
 # =====================================================
 
 def render():
@@ -125,10 +77,7 @@ def render():
 
     st.header("Roster Management")
 
-    # -------------------------------------------------
     # DATE CONTROLS
-    # -------------------------------------------------
-
     st.markdown("#### Select Date Range")
 
     col1, col2, col3 = st.columns([3, 3, 1.2])
@@ -168,10 +117,7 @@ def render():
 
     date_range = generate_date_range(start, end)
 
-    # -------------------------------------------------
     # BUILD DATAFRAME
-    # -------------------------------------------------
-
     table_data = []
 
     for staff in staff_list:
@@ -189,68 +135,38 @@ def render():
 
     df = pd.DataFrame(table_data)
 
-    # -------------------------------------------------
-    # COLUMN DEFINITIONS (PROPER COMPONENT REGISTRATION)
-    # -------------------------------------------------
+    # =====================================================
+    # GRID BUILDER (REQUIRED FOR 1.2.1)
+    # =====================================================
 
-    column_defs = [
-        {
-            "headerName": "",
-            "children": [
-                {
-                    "field": "Full Name",
-                    "pinned": "left",
-                    "width": 180,
-                    "cellStyle": {"textAlign": "center"}
-                },
-                {
-                    "field": "Position",
-                    "pinned": "left",
-                    "width": 130,
-                    "cellStyle": {"textAlign": "center"}
-                }
-            ]
-        }
-    ]
+    gb = GridOptionsBuilder.from_dataframe(df)
+
+    gb.configure_column("Full Name", pinned="left", width=180)
+    gb.configure_column("Position", pinned="left", width=130)
 
     for d in date_range:
         lbl = d.strftime("%d-%m")
-        header = f"{d.strftime('%a')} {lbl}"
 
-        column_defs.append({
-            "headerName": header,
-            "children": [
-                {
-                    "field": f"{lbl}_M",
-                    "headerName": "M",
-                    "width": 70,
-                    "cellRenderer": "ShiftSelector",
-                    "cellStyle": {"textAlign": "center"}
-                },
-                {
-                    "field": f"{lbl}_A",
-                    "headerName": "A",
-                    "width": 70,
-                    "cellRenderer": "ShiftSelector",
-                    "cellStyle": {"textAlign": "center"}
-                }
-            ]
-        })
+        gb.configure_column(
+            f"{lbl}_M",
+            header_name="M",
+            width=70,
+            cellRenderer=shift_renderer
+        )
 
-    grid_options = {
-        "columnDefs": column_defs,
-        "defaultColDef": {
-            "resizable": False,
-            "sortable": False
-        },
-        "components": {
-            "ShiftSelector": shift_renderer
-        }
-    }
+        gb.configure_column(
+            f"{lbl}_A",
+            header_name="A",
+            width=70,
+            cellRenderer=shift_renderer
+        )
 
-    # -------------------------------------------------
-    # RENDER GRID
-    # -------------------------------------------------
+    gb.configure_default_column(
+        cellStyle={"textAlign": "center"},
+        resizable=False
+    )
+
+    grid_options = gb.build()
 
     st.divider()
     st.subheader("Roster Schedule")
