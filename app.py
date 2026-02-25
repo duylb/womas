@@ -23,7 +23,7 @@ if "page" not in st.session_state:
 
 # Render navbar
 render_navbar()
-
+st.write("NAVBAR RENDERED")
 # Route pages
 page = st.session_state.get("page")
 
