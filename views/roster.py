@@ -44,24 +44,26 @@ div.stButton > button:hover {
 # SHIFT DROPDOWN RENDERER
 # =====================================================
 
-shift_renderer = JsCode("""
+sshift_renderer = JsCode("""
 class ShiftSelector {
     init(params) {
-        const position = params.data.Position;
+        const position = (params.data.Position || "").toLowerCase();
         const isMorning = params.colDef.field.endsWith("_M");
 
         let options = [""];
 
-        if (position === "Service") {
-            if (isMorning) options = ["", "S1", "S2", "S3"];
-            else options = ["", "S4", "S5", "S6"];
+        if (position === "service") {
+            options = isMorning
+                ? ["", "S1", "S2", "S3"]
+                : ["", "S4", "S5", "S6"];
         }
-        else if (position === "Kitchen") {
-            if (isMorning) options = ["", "B1", "B2", "B3"];
-            else options = ["", "B4", "B5", "B6"];
+        else if (position === "kitchen") {
+            options = isMorning
+                ? ["", "B1", "B2", "B3"]
+                : ["", "B4", "B5", "B6"];
         }
         else {
-            // Manager or others → no dropdown
+            // Manager or Admin → no dropdown
             this.eGui = document.createElement("div");
             this.eGui.innerHTML = "";
             return;
@@ -71,9 +73,11 @@ class ShiftSelector {
         this.eGui.style.width = "100%";
         this.eGui.style.height = "100%";
         this.eGui.style.textAlign = "center";
+        this.eGui.style.background = "transparent";
+        this.eGui.style.border = "none";
 
         options.forEach(opt => {
-            let option = document.createElement("option");
+            const option = document.createElement("option");
             option.value = opt;
             option.text = opt;
             if (params.value === opt) option.selected = true;
@@ -81,12 +85,19 @@ class ShiftSelector {
         });
 
         this.eGui.addEventListener("change", () => {
-            params.node.setDataValue(params.column.getId(), this.eGui.value);
+            params.node.setDataValue(
+                params.column.getId(),
+                this.eGui.value
+            );
         });
     }
 
     getGui() {
         return this.eGui;
+    }
+
+    refresh(params) {
+        return false;
     }
 }
 """)
