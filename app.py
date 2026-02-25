@@ -32,7 +32,7 @@ render_navbar()
 # --------------------------------------------------
 # Page Router
 # --------------------------------------------------
-page = st.session_state.page
+page = st.session_state.get("page", "Dashboard")
 
 if page == "Dashboard":
     dashboard.render()
