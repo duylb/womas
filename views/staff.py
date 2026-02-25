@@ -62,7 +62,9 @@ def import_staff_dialog():
             required_columns = ["full_name", "position", "phone", "email", "address"]
 
             if not all(col in df.columns for col in required_columns):
-                st.error("CSV format invalid. Required columns: full_name, position, phone, email, address")
+                st.error(
+                    "CSV must contain columns: full_name, position, phone, email, address"
+                )
                 return
 
             for _, row in df.iterrows():
@@ -96,14 +98,25 @@ def edit_staff_dialog(staff):
     from database.models import Staff
 
     full_name = st.text_input("Full Name", value=staff.full_name)
+
+    # SAFE POSITION HANDLING
+    positions = ["Manager", "Service", "Kitchen", "Admin"]
+    normalized_positions = [p.lower() for p in positions]
+
+    if staff.position and staff.position.lower() in normalized_positions:
+        default_index = normalized_positions.index(staff.position.lower())
+    else:
+        default_index = 0
+
     position = st.selectbox(
         "Position",
-        ["Manager", "Service", "Kitchen", "Admin"],
-        index=["Manager", "Service", "Kitchen", "Admin"].index(staff.position)
+        positions,
+        index=default_index
     )
-    phone = st.text_input("Phone", value=staff.phone)
-    email = st.text_input("Email", value=staff.email)
-    address = st.text_input("Address", value=staff.address)
+
+    phone = st.text_input("Phone", value=staff.phone or "")
+    email = st.text_input("Email", value=staff.email or "")
+    address = st.text_input("Address", value=staff.address or "")
 
     salary_type = st.selectbox(
         "Salary Type",
@@ -113,7 +126,8 @@ def edit_staff_dialog(staff):
 
     salary_value = st.number_input(
         "Salary Amount",
-        value=float(staff.hourly_rate or staff.package_salary or 0)
+        value=float(staff.hourly_rate or staff.package_salary or 0),
+        min_value=0.0
     )
 
     col1, col2, col3 = st.columns(3)
@@ -136,14 +150,14 @@ def edit_staff_dialog(staff):
             db.commit()
             db.close()
 
-            st.success("Staff updated.")
+            st.success("Staff updated successfully.")
             st.rerun()
 
-    # DELETE
+    # DELETE (Deactivate)
     with col2:
         if st.button("DELETE"):
             deactivate_staff(staff.id)
-            st.success("Staff removed.")
+            st.success("Staff deactivated.")
             st.rerun()
 
     # CANCEL
@@ -160,7 +174,7 @@ def render():
 
     st.header("Staff Management")
 
-    # Top action buttons
+    # Action Buttons
     col1, col2 = st.columns(2)
 
     with col1:
@@ -177,7 +191,7 @@ def render():
     staff_list = get_all_staff()
 
     if not staff_list:
-        st.info("No staff available.")
+        st.info("No active staff available.")
         return
 
     st.subheader("Current Staff")
@@ -187,9 +201,9 @@ def render():
 
         col1.write(staff.full_name)
         col2.write(staff.position)
-        col3.write(staff.phone)
-        col4.write(staff.email)
-        col5.write(staff.address)
+        col3.write(staff.phone or "")
+        col4.write(staff.email or "")
+        col5.write(staff.address or "")
 
         if col6.button("Edit", key=f"edit_{staff.id}"):
             edit_staff_dialog(staff)
