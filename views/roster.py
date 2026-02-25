@@ -136,7 +136,7 @@ def render():
     df = pd.DataFrame(table_data)
 
     # =====================================================
-    # GRID BUILDER (REQUIRED FOR 1.2.1)
+    # GRID BUILDER (WORKING VERSION FOR 1.2.1)
     # =====================================================
 
     gb = GridOptionsBuilder.from_dataframe(df)
@@ -150,15 +150,23 @@ def render():
         gb.configure_column(
             f"{lbl}_M",
             header_name="M",
-            width=70,
-            cellRenderer=shift_renderer
+            width=90,
+            editable=True,
+            cellEditor="agSelectCellEditor",
+            cellEditorParams={
+                "values": ["", "S1", "S2", "S3", "B1", "B2", "B3"]
+            }
         )
 
         gb.configure_column(
             f"{lbl}_A",
             header_name="A",
-            width=70,
-            cellRenderer=shift_renderer
+            width=90,
+            editable=True,
+            cellEditor="agSelectCellEditor",
+            cellEditorParams={
+                "values": ["", "S4", "S5", "S6", "B4", "B5", "B6"]
+            }
         )
 
     gb.configure_default_column(
@@ -167,15 +175,3 @@ def render():
     )
 
     grid_options = gb.build()
-
-    st.divider()
-    st.subheader("Roster Schedule")
-
-    AgGrid(
-        df,
-        gridOptions=grid_options,
-        height=650,
-        allow_unsafe_jscode=True,
-        columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
-        fit_columns_on_grid_load=False,
-    )
