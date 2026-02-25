@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError
 from database.db import SessionLocal
 from database.models import Staff
 
@@ -9,10 +10,14 @@ def get_all_staff():
 
 def add_staff(data):
     db = SessionLocal()
-    staff = Staff(**data)
-    db.add(staff)
-    db.commit()
-    db.close()
+    try:
+        staff = Staff(**data)
+        db.add(staff)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+    finally:
+        db.close()
 
 def deactivate_staff(staff_id):
     db = SessionLocal()

@@ -1,20 +1,26 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Boolean, Date, ForeignKey, UniqueConstraint
 from database.db import Base
+
 
 class Staff(Base):
     __tablename__ = "staff"
+
+    __table_args__ = (
+        UniqueConstraint("full_name", "phone", name="uq_staff_name_phone"),
+        UniqueConstraint("full_name", "email", name="uq_staff_name_email"),
+    )
 
     id = Column(Integer, primary_key=True)
     full_name = Column(String)
     position = Column(String)
 
-    salary_type = Column(String)  # hourly | package
+    salary_type = Column(String)
     hourly_rate = Column(Float, nullable=True)
     package_salary = Column(Float, nullable=True)
 
     phone = Column(String)
     email = Column(String)
-    address = Column(String)  # ✅ ADD THIS
+    address = Column(String)
 
     is_active = Column(Boolean, default=True)
 
