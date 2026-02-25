@@ -67,24 +67,34 @@ def render():
 
     st.header("Roster Management")
 
-    # -------------------------------------------------
-    # DATE CONTROLS (PERFECT ALIGNMENT)
-    # -------------------------------------------------
-    col1, col2, col3 = st.columns([3, 3, 1.2])
+# -------------------------------------------------
+# DATE CONTROLS (PROPER ALIGNMENT FIX)
+# -------------------------------------------------
 
-    with col1:
-        start_date = st.date_input("Start Date")
+st.markdown("#### Select Date Range")
 
-    with col2:
-        end_date = st.date_input("End Date")
+col1, col2, col3 = st.columns([3, 3, 1.2])
 
-    with col3:
-        st.markdown(
-            '<div style="display:flex; align-items:flex-end; height:100%;">',
-            unsafe_allow_html=True
-        )
-        start_clicked = st.button("Start", width="stretch")
-        st.markdown("</div>", unsafe_allow_html=True)
+with col1:
+    st.markdown("Start Date")
+    start_date = st.date_input(
+        label="start",
+        label_visibility="collapsed"
+    )
+
+with col2:
+    st.markdown("End Date")
+    end_date = st.date_input(
+        label="end",
+        label_visibility="collapsed"
+    )
+
+with col3:
+    st.markdown("&nbsp;")  # fake label spacing
+    start_clicked = st.button(
+        "Start",
+        width="stretch"
+    )
 
     # -------------------------------------------------
     # HANDLE START CLICK
