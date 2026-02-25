@@ -12,7 +12,7 @@ from st_aggrid.shared import ColumnsAutoSizeMode
 st.markdown("""
 <style>
 
-/* --- Start Button Style --- */
+/* Start Button */
 div.stButton > button {
     background-color: #2563eb;
     color: white;
@@ -24,19 +24,18 @@ div.stButton > button:hover {
     background-color: #1e40af;
 }
 
-/* --- AGGrid Header Alignment --- */
+/* Center header text */
 .ag-header-cell {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 }
-
 .ag-header-cell-label {
     justify-content: center !important;
     align-items: center !important;
 }
 
-/* --- Optional: Slightly darker pinned columns --- */
+/* Darker pinned columns */
 .ag-pinned-left-cols-container {
     background-color: #0f172a !important;
 }
@@ -63,42 +62,41 @@ def generate_date_range(start_date, end_date):
 # =====================================================
 
 def render():
+
     from services.staff_service import get_all_staff
 
     st.header("Roster Management")
 
-# -------------------------------------------------
-# DATE CONTROLS (PROPER ALIGNMENT FIX)
-# -------------------------------------------------
+    # -------------------------------------------------
+    # DATE CONTROLS (PROPER ALIGNMENT)
+    # -------------------------------------------------
 
-st.markdown("#### Select Date Range")
+    st.markdown("#### Select Date Range")
 
-col1, col2, col3 = st.columns([3, 3, 1.2])
+    col1, col2, col3 = st.columns([3, 3, 1.2])
 
-with col1:
-    st.markdown("Start Date")
-    start_date = st.date_input(
-        label="start",
-        label_visibility="collapsed"
-    )
+    with col1:
+        st.markdown("Start Date")
+        start_date = st.date_input(
+            "start",
+            label_visibility="collapsed"
+        )
 
-with col2:
-    st.markdown("End Date")
-    end_date = st.date_input(
-        label="end",
-        label_visibility="collapsed"
-    )
+    with col2:
+        st.markdown("End Date")
+        end_date = st.date_input(
+            "end",
+            label_visibility="collapsed"
+        )
 
-with col3:
-    st.markdown("&nbsp;")  # fake label spacing
-    start_clicked = st.button(
-        "Start",
-        width="stretch"
-    )
+    with col3:
+        st.markdown("&nbsp;")
+        start_clicked = st.button("Start", width="stretch")
 
     # -------------------------------------------------
     # HANDLE START CLICK
     # -------------------------------------------------
+
     if start_clicked:
         if start_date and end_date and start_date <= end_date:
             st.session_state["roster_start"] = start_date
@@ -110,6 +108,7 @@ with col3:
     # -------------------------------------------------
     # LOAD STAFF
     # -------------------------------------------------
+
     staff_list = get_all_staff()
 
     if not staff_list:
@@ -123,13 +122,16 @@ with col3:
     # -------------------------------------------------
     # BUILD DATE RANGE
     # -------------------------------------------------
+
     start = st.session_state["roster_start"]
     end = st.session_state["roster_end"]
+
     date_range = generate_date_range(start, end)
 
     # -------------------------------------------------
     # BUILD DATAFRAME
     # -------------------------------------------------
+
     table_data = []
 
     for staff in staff_list:
@@ -149,22 +151,19 @@ with col3:
     # -------------------------------------------------
     # AGGRID CONFIGURATION
     # -------------------------------------------------
+
     gb = GridOptionsBuilder.from_dataframe(df)
 
-    # Freeze first 2 columns
     gb.configure_column("Full Name", pinned="left", width=180)
     gb.configure_column("Position", pinned="left", width=140)
 
-    # Center align everything
     gb.configure_default_column(
         cellStyle={"textAlign": "center"},
-        headerClass="center-header",
         resizable=True
     )
 
     gb.configure_grid_options(
-        domLayout="normal",
-        suppressColumnVirtualisation=False
+        domLayout="normal"
     )
 
     grid_options = gb.build()
@@ -172,6 +171,7 @@ with col3:
     # -------------------------------------------------
     # RENDER GRID
     # -------------------------------------------------
+
     st.divider()
     st.subheader("Roster Schedule")
 
