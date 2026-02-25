@@ -15,36 +15,40 @@ st.set_page_config(
 )
 
 # --------------------------------------------------
-# INITIALIZATION
+# INIT
 # --------------------------------------------------
 init_db()
 init_session()
 
-# Ensure page always exists
 if "page" not in st.session_state:
     st.session_state["page"] = "Dashboard"
 
 # --------------------------------------------------
-# NAVBAR (ALWAYS FIRST VISIBLE ELEMENT)
+# LAYOUT STRUCTURE
 # --------------------------------------------------
-render_navbar()
 
-# --------------------------------------------------
-# ROUTER
-# --------------------------------------------------
-page = st.session_state["page"]
+# --- TOP NAV CONTAINER (ALWAYS VISIBLE) ---
+nav_container = st.container()
+with nav_container:
+    render_navbar()
 
-if page == "Dashboard":
-    dashboard.render()
+# --- MAIN CONTENT CONTAINER ---
+content_container = st.container()
 
-elif page == "Roster":
-    roster.render()
+with content_container:
+    page = st.session_state["page"]
 
-elif page == "Payroll":
-    payroll.render()
+    if page == "Dashboard":
+        dashboard.render()
 
-elif page == "Staff":
-    staff.render()
+    elif page == "Roster":
+        roster.render()
 
-elif page == "Shifts":
-    shifts.render()
+    elif page == "Payroll":
+        payroll.render()
+
+    elif page == "Staff":
+        staff.render()
+
+    elif page == "Shifts":
+        shifts.render()

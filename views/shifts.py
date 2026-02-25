@@ -1,23 +1,30 @@
 import streamlit as st
-from services.shift_service import get_shifts, update_shift_duration, init_shifts
+from services.shift_service import get_all_shifts, update_shift_duration
+
 
 def render():
-    st.title("Shift Management")
+    st.header("Shift Management")
 
-    init_shifts()
+    shifts = get_all_shifts()
 
-    shifts = get_shifts()
+    if not shifts:
+        st.info("No shifts found.")
+        return
 
     for shift in shifts:
-        col1, col2 = st.columns([2,2])
-        col1.write(shift.name)
-        duration = col2.number_input(
-            f"Duration for {shift.name}",
-            value=float(shift.duration_hours),
-            key=shift.id
-        )
+        col1, col2 = st.columns([4, 2])
 
-        if st.button("Update", key=f"u{shift.id}"):
-            update_shift_duration(shift.id, duration)
-            st.success("Updated")
-            st.rerun()
+        with col1:
+            st.write(f"**{shift.name}**")
+
+        with col2:
+            new_duration = st.number_input(
+                f"Duration (hours) - {shift.name}",
+                min_value=0.0,
+                value=float(shift.duration),
+                key=f"duration_{shift.id}"
+            )
+
+            if st.button("Update", key=f"update_{shift.id}"):
+                update_shift_duration(shift.id, new_duration)
+                st.success(f"{shift.name} updated.")

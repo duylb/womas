@@ -1,38 +1,52 @@
 import streamlit as st
-from services.staff_service import get_all_staff, add_staff, deactivate_staff
+from services.staff_service import (
+    get_all_staff,
+    add_staff,
+    delete_staff
+)
+
 
 def render():
-    st.title("Staff Management")
+    st.header("Staff Management")
 
-    with st.form("add_staff"):
-        st.subheader("Add Staff")
+    st.subheader("Add New Staff")
 
-        name = st.text_input("Full Name")
+    with st.form("add_staff_form"):
+        full_name = st.text_input("Full Name")
         position = st.text_input("Position")
-        salary_type = st.selectbox("Salary Type", ["hourly","package"])
-        hourly = st.number_input("Hourly Rate", 0.0)
-        package = st.number_input("Package Salary", 0.0)
+
+        salary_type = st.selectbox("Salary Type", ["hourly", "package"])
+        salary_value = st.number_input("Salary Amount", min_value=0.0)
+
         phone = st.text_input("Phone")
         email = st.text_input("Email")
 
-        if st.form_submit_button("Add"):
-            add_staff({
-                "full_name": name,
-                "position": position,
-                "salary_type": salary_type,
-                "hourly_rate": hourly,
-                "package_salary": package,
-                "phone": phone,
-                "email": email
-            })
-            st.success("Staff added")
+        submitted = st.form_submit_button("Add Staff")
 
-    st.subheader("Active Staff")
+        if submitted:
+            add_staff(
+                full_name=full_name,
+                position=position,
+                salary_type=salary_type,
+                salary_value=salary_value,
+                phone=phone,
+                email=email
+            )
+            st.success("Staff added successfully.")
 
-    staff = get_all_staff()
-    for s in staff:
-        col1, col2 = st.columns([4,1])
-        col1.write(f"{s.full_name} - {s.position}")
-        if col2.button("Remove", key=s.id):
-            deactivate_staff(s.id)
-            st.rerun()
+    st.divider()
+
+    st.subheader("Current Staff")
+
+    staff_list = get_all_staff()
+
+    for staff in staff_list:
+        col1, col2 = st.columns([8, 1])
+
+        with col1:
+            st.write(f"**{staff.full_name}** — {staff.position}")
+
+        with col2:
+            if st.button("❌", key=f"delete_{staff.id}"):
+                delete_staff(staff.id)
+                st.rerun()

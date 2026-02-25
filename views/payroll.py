@@ -1,25 +1,29 @@
 import streamlit as st
-from services.payroll_service import calculate_monthly_payroll
+import pandas as pd
+from services.payroll_service import calculate_payroll
 from services.email_service import send_payroll_email
-from datetime import datetime
+
 
 def render():
-    st.title("Payroll")
+    st.header("Payroll Management")
 
-    month = st.number_input("Month", 1, 12, datetime.now().month)
-    year = st.number_input("Year", 2020, 2100, datetime.now().year)
+    payroll = calculate_payroll()
 
-    if st.button("Calculate Payroll"):
-        payroll = calculate_monthly_payroll(month, year)
+    if not payroll:
+        st.info("No payroll data available.")
+        return
 
-        for p in payroll:
-            st.write(p)
+    df = pd.DataFrame(payroll)
+    st.dataframe(df, use_container_width=True)
 
-            if st.button(f"Send Email to {p['name']}", key=p['name']):
-                send_payroll_email(
-                    p["email"],
-                    p["name"],
-                    p["total_hours"],
-                    p["salary"]
-                )
-                st.success("Email sent")
+    st.divider()
+
+    selected_employee = st.selectbox(
+        "Send Payroll Email To",
+        df["full_name"].tolist()
+    )
+
+    if st.button("Send Payroll Email"):
+        employee_data = df[df["full_name"] == selected_employee].iloc[0]
+        send_payroll_email(employee_data.to_dict())
+        st.success(f"Payroll email sent to {selected_employee}.")
