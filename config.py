@@ -1,8 +1,6 @@
 import os
+from sqlalchemy import create_engine
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///rosman.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 465))
-SMTP_EMAIL = os.getenv("SMTP_EMAIL", "yourcompany@email.com")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "APP_PASSWORD")
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
