@@ -14,6 +14,7 @@ class Staff(Base):
 
     phone = Column(String)
     email = Column(String)
+    address = Column(String)  # ✅ ADD THIS
 
     is_active = Column(Boolean, default=True)
 
