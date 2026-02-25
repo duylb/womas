@@ -1,11 +1,11 @@
 import streamlit as st
-from services.shift_service import get_all_shifts, update_shift_duration
-
 
 def render():
+    from services.shift_service import get_shifts, update_shift_duration
+
     st.header("Shift Management")
 
-    shifts = get_all_shifts()
+    shifts = get_shifts()
 
     if not shifts:
         st.info("No shifts found.")
@@ -19,9 +19,9 @@ def render():
 
         with col2:
             new_duration = st.number_input(
-                f"Duration (hours) - {shift.name}",
+                f"Duration (hours)",
                 min_value=0.0,
-                value=float(shift.duration),
+                value=float(shift.duration_hours),
                 key=f"duration_{shift.id}"
             )
 
