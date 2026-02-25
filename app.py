@@ -5,7 +5,7 @@ from core.state import init_session
 from core.theme import load_theme
 from components.navbar import render_navbar
 
-from pages import dashboard, roster, payroll, staff, shifts
+from views import dashboard, roster, payroll, staff, shifts
 
 
 # --------------------------------------------------
