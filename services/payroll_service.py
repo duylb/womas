@@ -40,3 +40,8 @@ def calculate_monthly_payroll(month, year):
 
     db.close()
     return results
+
+def calculate_payroll():
+    from datetime import datetime
+    today = datetime.today()
+    return calculate_monthly_payroll(today.month, today.year)
