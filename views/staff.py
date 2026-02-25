@@ -3,11 +3,29 @@ import pandas as pd
 
 
 # ==========================================================
+# HELPER: Duplicate Check
+# ==========================================================
+def is_duplicate(existing_staff, full_name, phone, email):
+    for s in existing_staff:
+        if (
+            s.full_name.strip().lower() == full_name.strip().lower()
+            and (
+                (phone and s.phone == phone)
+                or (email and s.email == email)
+            )
+        ):
+            return True
+    return False
+
+
+# ==========================================================
 # ADD SINGLE STAFF DIALOG
 # ==========================================================
 @st.dialog("Add a Staff")
 def add_staff_dialog():
-    from services.staff_service import add_staff
+    from services.staff_service import add_staff, get_all_staff
+
+    existing_staff = get_all_staff()
 
     full_name = st.text_input("Full Name")
     position = st.selectbox(
@@ -25,6 +43,10 @@ def add_staff_dialog():
 
     with col1:
         if st.button("ADD"):
+            if is_duplicate(existing_staff, full_name, phone, email):
+                st.warning("Duplicate staff detected. Ignored.")
+                return
+
             staff_data = {
                 "full_name": full_name,
                 "position": position,
@@ -51,7 +73,9 @@ def add_staff_dialog():
 # ==========================================================
 @st.dialog("Import Staff List (CSV)")
 def import_staff_dialog():
-    from services.staff_service import add_staff
+    from services.staff_service import add_staff, get_all_staff
+
+    existing_staff = get_all_staff()
 
     uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
@@ -63,11 +87,19 @@ def import_staff_dialog():
 
             if not all(col in df.columns for col in required_columns):
                 st.error(
-                    "CSV must contain columns: full_name, position, phone, email, address"
+                    "CSV must contain: full_name, position, phone, email, address"
                 )
                 return
 
+            added = 0
+            skipped = 0
+
             for _, row in df.iterrows():
+
+                if is_duplicate(existing_staff, row["full_name"], row["phone"], row["email"]):
+                    skipped += 1
+                    continue
+
                 staff_data = {
                     "full_name": row["full_name"],
                     "position": row["position"],
@@ -79,9 +111,11 @@ def import_staff_dialog():
                     "package_salary": None,
                     "is_active": True
                 }
-                add_staff(staff_data)
 
-            st.success("Staff list imported successfully.")
+                add_staff(staff_data)
+                added += 1
+
+            st.success(f"Imported {added} staff. Skipped {skipped} duplicates.")
             st.rerun()
 
         except Exception as e:
@@ -99,7 +133,6 @@ def edit_staff_dialog(staff):
 
     full_name = st.text_input("Full Name", value=staff.full_name)
 
-    # SAFE POSITION HANDLING
     positions = ["Manager", "Service", "Kitchen", "Admin"]
     normalized_positions = [p.lower() for p in positions]
 
@@ -108,11 +141,7 @@ def edit_staff_dialog(staff):
     else:
         default_index = 0
 
-    position = st.selectbox(
-        "Position",
-        positions,
-        index=default_index
-    )
+    position = st.selectbox("Position", positions, index=default_index)
 
     phone = st.text_input("Phone", value=staff.phone or "")
     email = st.text_input("Email", value=staff.email or "")
@@ -132,7 +161,6 @@ def edit_staff_dialog(staff):
 
     col1, col2, col3 = st.columns(3)
 
-    # SAVE
     with col1:
         if st.button("SAVE"):
             db = SessionLocal()
@@ -150,31 +178,28 @@ def edit_staff_dialog(staff):
             db.commit()
             db.close()
 
-            st.success("Staff updated successfully.")
+            st.success("Staff updated.")
             st.rerun()
 
-    # DELETE (Deactivate)
     with col2:
         if st.button("DELETE"):
             deactivate_staff(staff.id)
             st.success("Staff deactivated.")
             st.rerun()
 
-    # CANCEL
     with col3:
         if st.button("CANCEL"):
             st.rerun()
 
 
 # ==========================================================
-# MAIN STAFF PAGE
+# MAIN PAGE
 # ==========================================================
 def render():
     from services.staff_service import get_all_staff
 
     st.header("Staff Management")
 
-    # Action Buttons
     col1, col2 = st.columns(2)
 
     with col1:
@@ -187,23 +212,36 @@ def render():
 
     st.divider()
 
-    # Staff List
     staff_list = get_all_staff()
 
     if not staff_list:
         st.info("No active staff available.")
         return
 
+    # Convert to DataFrame
+    data = []
+
+    for s in staff_list:
+        salary = (
+            s.hourly_rate if s.salary_type == "hourly"
+            else s.package_salary
+        )
+
+        data.append({
+            "Full Name": s.full_name,
+            "Position": s.position,
+            "Phone": s.phone,
+            "Email": s.email,
+            "Address": s.address,
+            "Salary": salary
+        })
+
+    df = pd.DataFrame(data)
+
     st.subheader("Current Staff")
 
-    for staff in staff_list:
-        col1, col2, col3, col4, col5, col6 = st.columns([3, 2, 2, 3, 3, 1])
-
-        col1.write(staff.full_name)
-        col2.write(staff.position)
-        col3.write(staff.phone or "")
-        col4.write(staff.email or "")
-        col5.write(staff.address or "")
-
-        if col6.button("Edit", key=f"edit_{staff.id}"):
-            edit_staff_dialog(staff)
+    st.dataframe(
+        df,
+        use_container_width=True,
+        hide_index=True
+    )
