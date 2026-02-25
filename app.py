@@ -15,7 +15,7 @@ st.set_page_config(
 
 init_db()
 init_session()
-load_theme()
+# load_theme()
 
 # Ensure page always exists
 if "page" not in st.session_state:

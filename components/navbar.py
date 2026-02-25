@@ -3,18 +3,13 @@ import streamlit as st
 PAGES = ["Dashboard", "Roster", "Payroll", "Staff", "Shifts"]
 
 def render_navbar():
-    col_logo, col_menu, col_user = st.columns([2, 6, 2])
+    st.markdown("### 🗓 RosMan WMS")
 
-    with col_logo:
-        st.markdown("### 🗓 RosMan")
+    cols = st.columns(len(PAGES))
 
-    with col_menu:
-        for page in PAGES:
-            if st.button(page, key=f"nav_{page}"):
-                st.session_state["page"] = page
-                st.rerun()
-
-    with col_user:
-        st.markdown(f"👤 {st.session_state.get('user', 'Admin')}")
+    for i, page in enumerate(PAGES):
+        if cols[i].button(page, key=f"nav_{page}", use_container_width=True):
+            st.session_state["page"] = page
+            st.rerun()
 
     st.divider()
