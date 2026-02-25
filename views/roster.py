@@ -5,26 +5,50 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 from st_aggrid.shared import ColumnsAutoSizeMode
 
 
-# -------------------------------------------------
-# STYLE
-# -------------------------------------------------
+# =====================================================
+# GLOBAL STYLES
+# =====================================================
+
 st.markdown("""
 <style>
-.start-btn button {
+
+/* --- Start Button Style --- */
+div.stButton > button {
     background-color: #2563eb;
     color: white;
     font-weight: 600;
+    border-radius: 8px;
+    height: 42px;
 }
-.start-btn button:hover {
-    background-color: #1d4ed8;
+div.stButton > button:hover {
+    background-color: #1e40af;
 }
+
+/* --- AGGrid Header Alignment --- */
+.ag-header-cell {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.ag-header-cell-label {
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* --- Optional: Slightly darker pinned columns --- */
+.ag-pinned-left-cols-container {
+    background-color: #0f172a !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
 
-# -------------------------------------------------
-# DATE RANGE GENERATOR
-# -------------------------------------------------
+# =====================================================
+# HELPER
+# =====================================================
+
 def generate_date_range(start_date, end_date):
     dates = []
     current = start_date
@@ -34,18 +58,19 @@ def generate_date_range(start_date, end_date):
     return dates
 
 
-# -------------------------------------------------
-# MAIN PAGE
-# -------------------------------------------------
+# =====================================================
+# MAIN RENDER FUNCTION
+# =====================================================
+
 def render():
     from services.staff_service import get_all_staff
 
     st.header("Roster Management")
 
     # -------------------------------------------------
-    # DATE CONTROLS
+    # DATE CONTROLS (PERFECT ALIGNMENT)
     # -------------------------------------------------
-    col1, col2, col3 = st.columns([2, 2, 1])
+    col1, col2, col3 = st.columns([3, 3, 1.2])
 
     with col1:
         start_date = st.date_input("Start Date")
@@ -54,10 +79,16 @@ def render():
         end_date = st.date_input("End Date")
 
     with col3:
-        st.markdown('<div class="start-btn">', unsafe_allow_html=True)
+        st.markdown(
+            '<div style="display:flex; align-items:flex-end; height:100%;">',
+            unsafe_allow_html=True
+        )
         start_clicked = st.button("Start", width="stretch")
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
+    # -------------------------------------------------
+    # HANDLE START CLICK
+    # -------------------------------------------------
     if start_clicked:
         if start_date and end_date and start_date <= end_date:
             st.session_state["roster_start"] = start_date
@@ -66,6 +97,9 @@ def render():
             st.warning("Please select a valid date range.")
             return
 
+    # -------------------------------------------------
+    # LOAD STAFF
+    # -------------------------------------------------
     staff_list = get_all_staff()
 
     if not staff_list:
@@ -76,12 +110,15 @@ def render():
         st.info("Select start and end dates, then press Start.")
         return
 
+    # -------------------------------------------------
+    # BUILD DATE RANGE
+    # -------------------------------------------------
     start = st.session_state["roster_start"]
     end = st.session_state["roster_end"]
     date_range = generate_date_range(start, end)
 
     # -------------------------------------------------
-    # BUILD TABLE DATA
+    # BUILD DATAFRAME
     # -------------------------------------------------
     table_data = []
 
@@ -105,22 +142,26 @@ def render():
     gb = GridOptionsBuilder.from_dataframe(df)
 
     # Freeze first 2 columns
-    gb.configure_column("Full Name", pinned="left")
-    gb.configure_column("Position", pinned="left")
+    gb.configure_column("Full Name", pinned="left", width=180)
+    gb.configure_column("Position", pinned="left", width=140)
 
-    # Center align header and cell text
+    # Center align everything
     gb.configure_default_column(
         cellStyle={"textAlign": "center"},
-        headerClass="center-header"
+        headerClass="center-header",
+        resizable=True
     )
 
     gb.configure_grid_options(
-        suppressColumnVirtualisation=False,
-        domLayout="normal"
+        domLayout="normal",
+        suppressColumnVirtualisation=False
     )
 
     grid_options = gb.build()
 
+    # -------------------------------------------------
+    # RENDER GRID
+    # -------------------------------------------------
     st.divider()
     st.subheader("Roster Schedule")
 
