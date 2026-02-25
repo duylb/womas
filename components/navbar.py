@@ -4,7 +4,7 @@ PAGES = ["Dashboard", "Roster", "Payroll", "Staff", "Shifts"]
 
 def render_navbar():
 
-    st.markdown("## 🗓 RosMan Workforce Management System")
+    st.markdown("##Workforce Management System")
 
     cols = st.columns(len(PAGES))
 
