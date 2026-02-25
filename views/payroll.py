@@ -17,7 +17,7 @@ def render():
         return
 
     df = pd.DataFrame(payroll)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, width="stretch")
 
     st.divider()
 

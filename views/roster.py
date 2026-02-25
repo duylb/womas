@@ -44,7 +44,7 @@ div.stButton > button:hover {
 # SHIFT DROPDOWN RENDERER
 # =====================================================
 
-sshift_renderer = JsCode("""
+shift_renderer = JsCode("""
 class ShiftSelector {
     init(params) {
         const position = (params.data.Position || "").toLowerCase();
