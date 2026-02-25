@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import date
 
+
 def render():
     from services.staff_service import get_all_staff
     from services.shift_service import get_shifts
@@ -12,7 +13,7 @@ def render():
     shifts = get_shifts()
 
     if not staff_list:
-        st.warning("No staff found. Please add staff first.")
+        st.warning("No staff available.")
         return
 
     selected_staff = st.selectbox(
@@ -21,23 +22,23 @@ def render():
         format_func=lambda x: x.full_name
     )
 
-    selected_date = st.date_input("Select Date", date.today())
+    selected_date = st.date_input("Work Date", date.today())
 
-    shift_options = [""] + [shift.name for shift in shifts]
+    shift_options = [""] + [s.name for s in shifts]
 
     col1, col2 = st.columns(2)
 
     with col1:
-        morning_shift = st.selectbox("Morning Shift", shift_options)
+        morning = st.selectbox("Morning Shift", shift_options)
 
     with col2:
-        afternoon_shift = st.selectbox("Afternoon Shift", shift_options)
+        afternoon = st.selectbox("Afternoon Shift", shift_options)
 
     if st.button("Save Roster"):
         save_roster_entry(
             staff_id=selected_staff.id,
             work_date=selected_date,
-            morning_shift=morning_shift,
-            afternoon_shift=afternoon_shift
+            morning_shift=morning,
+            afternoon_shift=afternoon
         )
-        st.success("Roster saved successfully.")
+        st.success("Roster saved.")

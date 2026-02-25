@@ -1,10 +1,11 @@
 import streamlit as st
 from datetime import datetime
 
+
 def render():
     from services.staff_service import get_all_staff
-    from services.payroll_service import calculate_monthly_payroll
     from services.shift_service import get_shifts
+    from services.payroll_service import calculate_monthly_payroll
 
     st.header("Dashboard")
 
@@ -24,13 +25,11 @@ def render():
 
     with col3:
         total_payroll = sum(p["salary"] for p in payroll) if payroll else 0
-        st.metric("Total Payroll", f"{total_payroll:,.0f}")
+        st.metric("Current Month Payroll", f"{total_payroll:,.0f}")
 
     st.divider()
 
     if payroll:
-        st.subheader("Current Month Payroll")
+        st.subheader("Payroll Summary")
         for p in payroll:
             st.write(f"**{p['name']}** — {p['salary']:,.0f}")
-    else:
-        st.info("No payroll data available.")
