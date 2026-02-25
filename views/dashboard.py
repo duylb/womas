@@ -2,4 +2,4 @@ import streamlit as st
 
 def render():
     st.header("Dashboard")
-    st.info("Welcome to RosMan Workforce Management System")
+    st.write("Welcome to RosMan Workforce Management System")
