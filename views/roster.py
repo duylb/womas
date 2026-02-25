@@ -1,18 +1,16 @@
 import streamlit as st
 import pandas as pd
 from datetime import timedelta
-from st_aggrid import AgGrid, GridOptionsBuilder
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 from st_aggrid.shared import ColumnsAutoSizeMode
 
 
 # =====================================================
-# GLOBAL STYLES
+# STYLES
 # =====================================================
 
 st.markdown("""
 <style>
-
-/* Start Button */
 div.stButton > button {
     background-color: #2563eb;
     color: white;
@@ -24,24 +22,74 @@ div.stButton > button:hover {
     background-color: #1e40af;
 }
 
-/* Center header text */
 .ag-header-cell {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 }
+
 .ag-header-cell-label {
     justify-content: center !important;
     align-items: center !important;
 }
 
-/* Darker pinned columns */
 .ag-pinned-left-cols-container {
     background-color: #0f172a !important;
 }
-
 </style>
 """, unsafe_allow_html=True)
+
+
+# =====================================================
+# SHIFT DROPDOWN RENDERER
+# =====================================================
+
+shift_renderer = JsCode("""
+class ShiftSelector {
+    init(params) {
+        const position = params.data.Position;
+        const isMorning = params.colDef.field.endsWith("_M");
+
+        let options = [""];
+
+        if (position === "Service") {
+            if (isMorning) options = ["", "S1", "S2", "S3"];
+            else options = ["", "S4", "S5", "S6"];
+        }
+        else if (position === "Kitchen") {
+            if (isMorning) options = ["", "B1", "B2", "B3"];
+            else options = ["", "B4", "B5", "B6"];
+        }
+        else {
+            // Manager or others → no dropdown
+            this.eGui = document.createElement("div");
+            this.eGui.innerHTML = "";
+            return;
+        }
+
+        this.eGui = document.createElement("select");
+        this.eGui.style.width = "100%";
+        this.eGui.style.height = "100%";
+        this.eGui.style.textAlign = "center";
+
+        options.forEach(opt => {
+            let option = document.createElement("option");
+            option.value = opt;
+            option.text = opt;
+            if (params.value === opt) option.selected = true;
+            this.eGui.appendChild(option);
+        });
+
+        this.eGui.addEventListener("change", () => {
+            params.node.setDataValue(params.column.getId(), this.eGui.value);
+        });
+    }
+
+    getGui() {
+        return this.eGui;
+    }
+}
+""")
 
 
 # =====================================================
@@ -58,7 +106,7 @@ def generate_date_range(start_date, end_date):
 
 
 # =====================================================
-# MAIN RENDER FUNCTION
+# MAIN
 # =====================================================
 
 def render():
@@ -67,71 +115,47 @@ def render():
 
     st.header("Roster Management")
 
-    # -------------------------------------------------
-    # DATE CONTROLS (PROPER ALIGNMENT)
-    # -------------------------------------------------
-
+    # DATE CONTROLS
     st.markdown("#### Select Date Range")
 
     col1, col2, col3 = st.columns([3, 3, 1.2])
 
     with col1:
         st.markdown("Start Date")
-        start_date = st.date_input(
-            "start",
-            label_visibility="collapsed"
-        )
+        start_date = st.date_input("start", label_visibility="collapsed")
 
     with col2:
         st.markdown("End Date")
-        end_date = st.date_input(
-            "end",
-            label_visibility="collapsed"
-        )
+        end_date = st.date_input("end", label_visibility="collapsed")
 
     with col3:
         st.markdown("&nbsp;")
         start_clicked = st.button("Start", width="stretch")
-
-    # -------------------------------------------------
-    # HANDLE START CLICK
-    # -------------------------------------------------
 
     if start_clicked:
         if start_date and end_date and start_date <= end_date:
             st.session_state["roster_start"] = start_date
             st.session_state["roster_end"] = end_date
         else:
-            st.warning("Please select a valid date range.")
+            st.warning("Please select valid dates.")
             return
-
-    # -------------------------------------------------
-    # LOAD STAFF
-    # -------------------------------------------------
 
     staff_list = get_all_staff()
 
     if not staff_list:
-        st.info("No active staff available.")
+        st.info("No active staff.")
         return
 
     if "roster_start" not in st.session_state:
-        st.info("Select start and end dates, then press Start.")
+        st.info("Select dates and press Start.")
         return
-
-    # -------------------------------------------------
-    # BUILD DATE RANGE
-    # -------------------------------------------------
 
     start = st.session_state["roster_start"]
     end = st.session_state["roster_end"]
 
     date_range = generate_date_range(start, end)
 
-    # -------------------------------------------------
     # BUILD DATAFRAME
-    # -------------------------------------------------
-
     table_data = []
 
     for staff in staff_list:
@@ -141,36 +165,67 @@ def render():
         }
 
         for d in date_range:
-            column_name = f"{d.strftime('%a')} {d.strftime('%d-%m')}"
-            row[column_name] = ""
+            lbl = d.strftime("%d-%m")
+            row[f"{lbl}_M"] = ""
+            row[f"{lbl}_A"] = ""
 
         table_data.append(row)
 
     df = pd.DataFrame(table_data)
 
-    # -------------------------------------------------
-    # AGGRID CONFIGURATION
-    # -------------------------------------------------
-
+    # AGGRID CONFIG
     gb = GridOptionsBuilder.from_dataframe(df)
 
     gb.configure_column("Full Name", pinned="left", width=180)
-    gb.configure_column("Position", pinned="left", width=140)
+    gb.configure_column("Position", pinned="left", width=130)
+
+    for d in date_range:
+        lbl = d.strftime("%d-%m")
+        gb.configure_column(
+            f"{lbl}_M",
+            header_name="M",
+            width=70,
+            cellRenderer=shift_renderer
+        )
+        gb.configure_column(
+            f"{lbl}_A",
+            header_name="A",
+            width=70,
+            cellRenderer=shift_renderer
+        )
 
     gb.configure_default_column(
         cellStyle={"textAlign": "center"},
-        resizable=True
+        resizable=False
     )
 
-    gb.configure_grid_options(
-        domLayout="normal"
-    )
+    gb.configure_grid_options(domLayout="normal")
 
     grid_options = gb.build()
 
-    # -------------------------------------------------
-    # RENDER GRID
-    # -------------------------------------------------
+    # GROUP HEADERS
+    built_defs = grid_options["columnDefs"]
+
+    pinned_defs = [c for c in built_defs if c.get("pinned") == "left"]
+    date_map = {c["field"]: c for c in built_defs if "_" in c.get("field", "")}
+
+    date_groups = []
+
+    for d in date_range:
+        lbl = d.strftime("%d-%m")
+        header = f"{d.strftime('%a')} {lbl}"
+
+        date_groups.append({
+            "headerName": header,
+            "children": [
+                date_map[f"{lbl}_M"],
+                date_map[f"{lbl}_A"]
+            ]
+        })
+
+    grid_options["columnDefs"] = [
+        {"headerName": "", "children": pinned_defs}
+    ] + date_groups
 
     st.divider()
     st.subheader("Roster Schedule")
@@ -178,7 +233,7 @@ def render():
     AgGrid(
         df,
         gridOptions=grid_options,
-        height=600,
+        height=650,
         allow_unsafe_jscode=True,
         columns_auto_size_mode=ColumnsAutoSizeMode.NO_AUTOSIZE,
         fit_columns_on_grid_load=False,
