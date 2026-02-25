@@ -190,7 +190,7 @@ def render():
     df = pd.DataFrame(table_data)
 
     # -------------------------------------------------
-    # COLUMN DEFINITIONS (DIRECT BUILD, NO MUTATION)
+    # COLUMN DEFINITIONS (PROPER COMPONENT REGISTRATION)
     # -------------------------------------------------
 
     column_defs = [
@@ -224,14 +224,14 @@ def render():
                     "field": f"{lbl}_M",
                     "headerName": "M",
                     "width": 70,
-                    "cellRenderer": shift_renderer,
+                    "cellRenderer": "ShiftSelector",
                     "cellStyle": {"textAlign": "center"}
                 },
                 {
                     "field": f"{lbl}_A",
                     "headerName": "A",
                     "width": 70,
-                    "cellRenderer": shift_renderer,
+                    "cellRenderer": "ShiftSelector",
                     "cellStyle": {"textAlign": "center"}
                 }
             ]
@@ -242,6 +242,9 @@ def render():
         "defaultColDef": {
             "resizable": False,
             "sortable": False
+        },
+        "components": {
+            "ShiftSelector": shift_renderer
         }
     }
 
