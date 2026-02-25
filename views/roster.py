@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 from datetime import timedelta
-from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
+from st_aggrid import AgGrid, JsCode
 from st_aggrid.shared import ColumnsAutoSizeMode
 
 
 # =====================================================
-# STYLES
+# GLOBAL STYLES
 # =====================================================
 
 st.markdown("""
@@ -52,18 +52,17 @@ class ShiftSelector {
 
         let options = [""];
 
-        if (position === "service") {
+        if (position.includes("service")) {
             options = isMorning
                 ? ["", "S1", "S2", "S3"]
                 : ["", "S4", "S5", "S6"];
         }
-        else if (position === "kitchen") {
+        else if (position.includes("kitchen")) {
             options = isMorning
                 ? ["", "B1", "B2", "B3"]
                 : ["", "B4", "B5", "B6"];
         }
         else {
-            // Manager or Admin → no dropdown
             this.eGui = document.createElement("div");
             this.eGui.innerHTML = "";
             return;
@@ -117,7 +116,7 @@ def generate_date_range(start_date, end_date):
 
 
 # =====================================================
-# MAIN
+# MAIN RENDER
 # =====================================================
 
 def render():
@@ -126,7 +125,10 @@ def render():
 
     st.header("Roster Management")
 
+    # -------------------------------------------------
     # DATE CONTROLS
+    # -------------------------------------------------
+
     st.markdown("#### Select Date Range")
 
     col1, col2, col3 = st.columns([3, 3, 1.2])
@@ -166,7 +168,10 @@ def render():
 
     date_range = generate_date_range(start, end)
 
+    # -------------------------------------------------
     # BUILD DATAFRAME
+    # -------------------------------------------------
+
     table_data = []
 
     for staff in staff_list:
@@ -184,59 +189,65 @@ def render():
 
     df = pd.DataFrame(table_data)
 
-    # AGGRID CONFIG
-    gb = GridOptionsBuilder.from_dataframe(df)
+    # -------------------------------------------------
+    # COLUMN DEFINITIONS (DIRECT BUILD, NO MUTATION)
+    # -------------------------------------------------
 
-    gb.configure_column("Full Name", pinned="left", width=180)
-    gb.configure_column("Position", pinned="left", width=130)
-
-    for d in date_range:
-        lbl = d.strftime("%d-%m")
-        gb.configure_column(
-            f"{lbl}_M",
-            header_name="M",
-            width=70,
-            cellRenderer=shift_renderer
-        )
-        gb.configure_column(
-            f"{lbl}_A",
-            header_name="A",
-            width=70,
-            cellRenderer=shift_renderer
-        )
-
-    gb.configure_default_column(
-        cellStyle={"textAlign": "center"},
-        resizable=False
-    )
-
-    gb.configure_grid_options(domLayout="normal")
-
-    grid_options = gb.build()
-
-    # GROUP HEADERS
-    built_defs = grid_options["columnDefs"]
-
-    pinned_defs = [c for c in built_defs if c.get("pinned") == "left"]
-    date_map = {c["field"]: c for c in built_defs if "_" in c.get("field", "")}
-
-    date_groups = []
+    column_defs = [
+        {
+            "headerName": "",
+            "children": [
+                {
+                    "field": "Full Name",
+                    "pinned": "left",
+                    "width": 180,
+                    "cellStyle": {"textAlign": "center"}
+                },
+                {
+                    "field": "Position",
+                    "pinned": "left",
+                    "width": 130,
+                    "cellStyle": {"textAlign": "center"}
+                }
+            ]
+        }
+    ]
 
     for d in date_range:
         lbl = d.strftime("%d-%m")
         header = f"{d.strftime('%a')} {lbl}"
 
-        date_groups.append({
+        column_defs.append({
             "headerName": header,
             "children": [
-                date_map[f"{lbl}_M"],
-                date_map[f"{lbl}_A"]
+                {
+                    "field": f"{lbl}_M",
+                    "headerName": "M",
+                    "width": 70,
+                    "cellRenderer": shift_renderer,
+                    "cellStyle": {"textAlign": "center"}
+                },
+                {
+                    "field": f"{lbl}_A",
+                    "headerName": "A",
+                    "width": 70,
+                    "cellRenderer": shift_renderer,
+                    "cellStyle": {"textAlign": "center"}
+                }
             ]
         })
 
-    grid_options["columnDefs"] = [
-        {"headerName": "", "children": pinned_defs}
-    ] + date_groups
+    grid_options = {
+        "columnDefs": column_defs,
+        "defaultColDef": {
+            "resizable": False,
+            "sortable": False
+        }
+    }
+
+    # -------------------------------------------------
+    # RENDER GRID
+    # -------------------------------------------------
 
     st.divider()
     st.subheader("Roster Schedule")
